@@ -270,10 +270,10 @@ class Resnet(Module):
             * Sequential:   ResNetBlock layer
         """
         # Calculate number of strides needed
-        strides:                int =       [stride] + [1]*(num_blocks - 1)
+        strides:                int =               [stride] + [1]*(num_blocks - 1)
         
         # Initialize list of layers
-        layers:                 list[] =    []
+        layers:                 list[ResnetBlock] = []
 
         # For each stride amount needed...
         for stride in strides:
@@ -282,7 +282,7 @@ class Resnet(Module):
             layers.append(ResnetBlock(self._planes_in_, planes_out, stride))
             
             # "redefine" planes in
-            self._planes_in_:   int =       planes_out
+            self._planes_in_:   int =               planes_out
 
         # Return block layer
         return Sequential(*layers)

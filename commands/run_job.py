@@ -1,6 +1,6 @@
 """Execute job process."""
 
-from json                   import dump
+from json                   import dump, dumps
 from logging                import Logger
 from os                     import makedirs
 
@@ -72,6 +72,9 @@ def run_job(
     # Initialize logger
     __logger__:             Logger =    LOGGER.getChild(suffix = "job-process")
     
+    # Log job configuration for debugging
+    __logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
+    
     # Ensure output path exists
     makedirs(name = f"{output_path}/{model}/{dataset}/{kernel if kernel else 'control'}", exist_ok = True)
     __logger__.debug(f"Output path: {output_path}/{model}/{dataset}/{kernel if kernel else 'control'}")
@@ -81,8 +84,6 @@ def run_job(
     
     # Extract data loaders
     _train_, _test_ =                   _dataset_.get_loaders()
-    
-    print(f"Initializing model with kernel: {locals()}")
     
     # Load model
     _model_:                Module =    load_model(

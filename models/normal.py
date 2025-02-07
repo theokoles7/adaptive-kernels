@@ -1,6 +1,6 @@
 """Basic CNN model."""
 
-from json                   import dump
+from json                   import dump, dumps
 from logging                import Logger
 
 from pandas                 import DataFrame
@@ -42,12 +42,15 @@ class NormalCNN(Module):
         """
         # Initialize parent class
         super(NormalCNN, self).__init__()
-    
-        # Initialie model data record
-        self._model_data_:  dict =  {}
         
         # Initialize logger
         self.__logger__:    Logger =    LOGGER.getChild(suffix = 'normal-cnn')
+        
+        # Log initialization parameters for debugging
+        self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
+    
+        # Initialie model data record
+        self._model_data_:  dict =  {}
 
         # Initialize distribution parameters
         self._kernel_:      str =           kernel
@@ -187,13 +190,14 @@ class NormalCNN(Module):
         # Set current epoch
         self._epoch_:   int =   epoch
 
-        # Set kernels
+        # For each kernel needed...
         for kernel, channel_size, location, scale in zip(
             ["_kernel1_", "_kernel2_", "_kernel3_", "_kernel4_"],
             [32, 64, 128, 256],
             self._locations_,
             self._scales_
         ):
+            # Set kernel
             self.__setattr__(name = kernel, value = load_kernel(
                 kernel =    self._kernel_,
                 size =      size,

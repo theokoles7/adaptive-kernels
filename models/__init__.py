@@ -13,6 +13,7 @@ def load_model(
     channels_out:   int, 
     dim:            int,
     kernel:         str =   None,
+    kernel_group:   int =   13,
     location:       float = 0.0,
     scale:          float = 1.0,
     **kwargs
@@ -25,6 +26,7 @@ def load_model(
         * channels_out  (int):              Output channels
         * dim           (int):              Input image dimension
         * kernel        (str, optional):    Kernel with which model will be initialized.
+        * kernel_group  (int, optional):    Kernel configuration type. Defaults to 13.
         * location      (float, optional):  Distribution location parameter. Defaults to 0.0.
         * scale         (float, optional):  Distribution scale parameter. Defaults to 1.0.
 

@@ -1,5 +1,6 @@
 """Resnet-18 model."""
 
+from json                   import dumps
 from logging                import Logger
 
 from pandas                 import DataFrame
@@ -30,8 +31,10 @@ class Resnet(Module):
         channels_in:    int, 
         channels_out:   int,
         kernel:         str =   None,
+        kernel_group:   int =   13,
         location:       float = 0.0,
         scale:          float = 1.0,
+        **kwargs
     ):
         """# Initialize Resnet 18 model.
 
@@ -39,6 +42,7 @@ class Resnet(Module):
             * channels_in   (int):              Input channels.
             * channels_out  (int):              Output channels.
             * kernel        (str, optional):    Kernel with which model will be set.
+            * kernel_group  (int, optional):    Kernel configuration type. Defaults to 13.
             * location      (float, optional):  Distribution location parameter. Defaults to 0.0.
             * scale         (float, optional):  Distribution scale parameter. Defaults to 1.0.
         """
@@ -46,30 +50,34 @@ class Resnet(Module):
         super(Resnet, self).__init__()
 
         # Initialize logger
-        self.__logger__:    Logger =        LOGGER.getChild(suffix = 'resnet')
+        self.__logger__:        Logger =        LOGGER.getChild(suffix = 'resnet')
+        
+        # Log initialization for debugging
+        self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
 
         # Initialize planes in
-        self._planes_in_:   int =           64
+        self._planes_in_:       int =           64
 
         # Initialize distribution parameters
-        self._kernel_:      str =           kernel
-        self._locations_:   list[float] =   [location]*5
-        self._scales_:      list[float] =   [scale]*5
+        self._kernel_:          str =           kernel
+        self._kernel_group_:    int =           kernel_group
+        self._locations_:       list[float] =   [location]*6
+        self._scales_:          list[float] =   [scale]*6
 
         # Batch normalization layer
-        self._bn:           BatchNorm2d =   BatchNorm2d(64)
+        self._bn_:              BatchNorm2d =   BatchNorm2d(64)
 
         # Convolving layer
-        self._conv_:        Conv2d =        Conv2d(channels_in, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self._conv_:            Conv2d =        Conv2d(channels_in, 64, kernel_size=3, stride=1, padding=1, bias=False)
 
         # Block layers
-        self._layer1_:      Sequential =    self._make_layer_( 64, 2, stride=1)
-        self._layer2_:      Sequential =    self._make_layer_(128, 2, stride=2)
-        self._layer3_:      Sequential =    self._make_layer_(256, 2, stride=2)
-        self._layer4_:      Sequential =    self._make_layer_(512, 2, stride=2)
+        self._layer1_:          Sequential =    self._make_layer_( 64, 2, stride=1)
+        self._layer2_:          Sequential =    self._make_layer_(128, 2, stride=2)
+        self._layer3_:          Sequential =    self._make_layer_(256, 2, stride=2)
+        self._layer4_:          Sequential =    self._make_layer_(512, 2, stride=2)
 
         # Linear layer
-        self._linear_:      Linear =        Linear(512, channels_out)
+        self._linear_:          Linear =        Linear(512, channels_out)
 
         # initialize layer weights
         self._initialize_weights_()
@@ -196,21 +204,26 @@ class Resnet(Module):
 
         # Set kernel
         self._kernel1_ = load_kernel(
-                            kernel =    self._kernel_, 
-                            size =      size, 
-                            channels =  64, 
-                            location =  self._locations_[1], 
-                            scale =     self._scales_[1]
+                            kernel =        self._kernel_,
+                            kernel_group =  self._kernel_group_,
+                            size =          size, 
+                            channels =      64, 
+                            location =      self._locations_[1], 
+                            scale =         self._scales_[1]
                         )
 
         # For each block layer...
-        for layer in [self._layer1_, self._layer2_, self._layer3_, self._layer4_]:
+        for layer, location, scale in zip(
+            ["_layer1_", "_layer2_", "_layer3_", "_layer4_"],
+            self._locations_,
+            self._scales_
+        ):
             
             # For each block in block layer...
-            for child in layer:
+            for child in self.__getattr__(layer).children():
                 
                 # Set kernel(s) for block
-                child.set_kernels(size = size)
+                child.set_kernels()
             
         # Set model on GPU if available
         if is_available():  self = self.cuda()
@@ -232,21 +245,21 @@ class Resnet(Module):
         for module in self.modules():
 
             # For convolving layer(s)...
-            if isinstance(obj =     module, class_or_tuple =    Conv2d):
+            if isinstance(module, Conv2d):
                 
                 # Fill the input Tensor with values using a Kaiming normal distribution
                 kaiming_normal_(tensor = module.weight, mode='fan_in', nonlinearity='relu')
                 if module.bias is not None: constant_(module.bias, 0)
 
             # For batch normalization
-            elif isinstance(obj =   module, class_or_tuple =    BatchNorm2d):
+            elif isinstance(module, BatchNorm2d):
                 
                 # Fill the input Tensor with the value
                 constant_(tensor =  module.weight,  val =   1)
                 constant_(tensor =  module.bias,    val =   0)
 
             # Linear
-            elif isinstance(obj =   module, class_or_tuple =    Linear):
+            elif isinstance(module, Linear):
                 
                 # Fill the input Tensor with values drawn from the normal distribution
                 normal_(tensor = module.weight, mean = 0, std = 0.01)
@@ -279,7 +292,15 @@ class Resnet(Module):
         for stride in strides:
             
             # Append block layer
-            layers.append(ResnetBlock(self._planes_in_, planes_out, stride))
+            layers.append(ResnetBlock(
+                channels_in =   self._planes_in_,
+                channels_out =  planes_out,
+                stride =        stride,
+                kernel =        self._kernel_,
+                kernel_group =  self._kernel_group_,
+                location =      self._locations_[0],
+                scale =         self._scales_[0]
+            ))
             
             # "redefine" planes in
             self._planes_in_:   int =               planes_out

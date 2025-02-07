@@ -31,7 +31,7 @@ class Kernel(Conv2d):
     def __init__(self,
         kernel_group:   int =   13,
         location:       float = 0.0,
-        scale:          float = 0.1,
+        scale:          float = 1.0,
         channels:       int =   3,
         size:           int =   3,
         **kwargs
@@ -56,12 +56,15 @@ class Kernel(Conv2d):
             padding =       (1 if size == 3 else (2 if size == 5 else 0))
         )
         
+        # Initialize logger
+        self.__logger__:    Logger =    LOGGER.getChild(suffix = self.__class__.__name__.lower())
+        
+        # Log kernel group for debugging
+        self.__logger__.debug(f"Kernel group selected: {kernel_group}")
+        
         # Initialize location & scale attributes
         self._location_:    float =     location
         self._scale_:       float =     scale
-        
-        # Initialize logger
-        self.__logger__:    Logger =    LOGGER.getChild(suffix = self.__class__.__name__.lower())
         
         # Randomly select kernel type from config group & log for debugging
         kernel_type:        str =       choice(self.__kernel_groups__[kernel_group])

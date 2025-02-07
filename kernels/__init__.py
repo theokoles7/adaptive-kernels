@@ -8,31 +8,40 @@ from kernels.gumbel             import GumbelKernel
 from kernels.laplace            import LaplaceKernel
 
 def load_kernel(
-    kernel:     str,
+    kernel:         str,
+    kernel_group:   int =   13,
+    location:       float = 0.0,
+    scale:          float = 1.0,
     **kwargs
 ) -> Kernel:
     """# Load specified kernel.
 
     ## Args:
-        * kernel    (str):              Kernel selection.
+        * kernel        (str):              Kernel selection.
+        * kernel_group  (int):              Kernel configuration type. Defaults to 13.
+        * location      (float, optional):  Distribution location parameter.
+        * scale         (float, optional):  Distribution scale parameter.
 
     ## Returns:
         * Kernel:   Selected kernel, initialized and ready for convolving.
     """
+    # Validate kernel group selection
+    assert kernel_group in range(1, 15),    f"Invalid kernel group selection: {kernel_group}"
+    
     # Match kernel selection
     match kernel:
         
         # Cauchy
-        case "cauchy":      return CauchyKernel(**kwargs)
+        case "cauchy":      return CauchyKernel(**locals())
         
         # Gaussian
-        case "gaussian":    return GaussianKernel(**kwargs)
+        case "gaussian":    return GaussianKernel(**locals())
         
         # Gumbel
-        case "gumbel":      return GumbelKernel(**kwargs)
+        case "gumbel":      return GumbelKernel(**locals())
         
         # Laplace
-        case "laplace":     return LaplaceKernel(**kwargs)
+        case "laplace":     return LaplaceKernel(**locals())
         
         # Invalid selection
         case _:             raise NotImplementedError(f"Invalid kernel selection: {kernel}")

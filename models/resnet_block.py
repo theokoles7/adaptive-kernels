@@ -1,5 +1,6 @@
 """Resnet model block."""
 
+from json                   import dumps
 from logging                import Logger
 
 from torch                  import mean, no_grad, std, Tensor
@@ -17,6 +18,7 @@ class ResnetBlock(Module):
         channels_out:   int, 
         stride:         int,
         kernel:         str =   None,
+        kernel_group:   int =   13,
         location:       float = 0.0,
         scale:          float = 1.0,
     ):
@@ -27,6 +29,7 @@ class ResnetBlock(Module):
             * channels_out  (int):              Output channels.
             * stride        (int):              Convolution stride.
             * kernel        (str, optional):    Kernel with which model will be set.
+            * kernel_group  (int, optional):    Kernel configuration type. Defaults to 13.
             * location      (float, optional):  Distribution location parameter. Defaults to 0.0.
             * scale         (float, optional):  Distribution scale parameter. Defaults to 1.0.
         """
@@ -34,9 +37,16 @@ class ResnetBlock(Module):
 
         # Initialize logger
         self.__logger__:            Logger =        LOGGER.getChild(suffix = 'resnet-block')
+        
+        # Log initialization for debugging
+        self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
+        
+        # Initialize block layer attributes
+        self._channels_out_:        int =           channels_out
 
         # Initialize distribution parameters
         self._kernel_:              str =           kernel
+        self._kernel_group_:        int =           kernel_group
         self._locations_:           list[float] =   [location]*5
         self._scales_:              list[float] =   [scale]*5
 
@@ -92,11 +102,11 @@ class ResnetBlock(Module):
             y:  Tensor =    x1.float()
             
             # Calculate mean & standard deviation of layer output
-            self.__locations__[0], self.__scales__[0] = mean(y).item(), std(y).item()
+            self._locations_[0], self._scales_[0] = mean(y).item(), std(y).item()
 
         # LAYER 2 =============================================================================
         # Pass through second convolving layer
-        x2: Tensor =        self._conv2_(relu(self.bn1(self.kernel1(x1) if ARGS.distribution else x1)))
+        x2: Tensor =        self._conv2_(relu(self._bn1_(self._kernel1_(x1) if self._kernel_ is not None else x1)))
 
         # Log output shape of first second for debugging
         self.__logger__.debug(f"Layer 2 shape: {x2.shape}")
@@ -108,11 +118,11 @@ class ResnetBlock(Module):
             y:  Tensor =    x2.float()
             
             # Calculate mean & standard deviation of layer output
-            self.__locations__[1], self.__scales__[1] = mean(y).item(), std(y).item()
+            self._locations_[1], self._scales_[1] = mean(y).item(), std(y).item()
 
         # OUTPUT LAYER ========================================================================
         # Pass through batch normalization layer
-        output: Tensor =    self.bn2(self.kernel2(x2) if ARGS.distribution else x2)
+        output: Tensor =    self._bn2_(self._kernel2_(x2) if self._kernel_ is not None else x2)
 
         # Log output shape of output layer for debugging
         self.__logger__.debug(f"Output layer shape: {output.shape}")
@@ -123,14 +133,8 @@ class ResnetBlock(Module):
         # Return output
         return relu(output)
     
-    def set_kernels(self,
-            size:   int    
-        ) -> None:
-        """# Create/update kernels.
-
-        ## Args:
-            * size  (int):  Size with which kernels will be created.
-        """
+    def set_kernels(self) -> None:
+        """# Create/update kernels."""
         # Log for debugging
         self.__logger__.debug(f"Locations: {self._locations_}, Scales: {self._scales_}")
 
@@ -142,9 +146,10 @@ class ResnetBlock(Module):
             self._scales_
         ):
             self.__setattr__(name = kernel, value = load_kernel(
-                kernel =    self._kernel_,
-                size =      size,
-                channels =  channel_size,
-                location =  location,
-                scale =     scale
+                kernel =        self._kernel_,
+                kernel_group =  self._kernel_group_,
+                size =          3,
+                channels =      channel_size,
+                location =      location,
+                scale =         scale
             ))

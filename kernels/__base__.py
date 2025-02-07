@@ -1,5 +1,6 @@
 """Base implementation of kernel classes."""
 
+from json       import dumps
 from logging    import Logger
 from random     import choice
 
@@ -59,8 +60,8 @@ class Kernel(Conv2d):
         # Initialize logger
         self.__logger__:    Logger =    LOGGER.getChild(suffix = self.__class__.__name__.lower())
         
-        # Log kernel group for debugging
-        self.__logger__.debug(f"Kernel group selected: {kernel_group}")
+        # Log initialization parameters for debugging
+        self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
         
         # Initialize location & scale attributes
         self._location_:    float =     location
@@ -68,7 +69,6 @@ class Kernel(Conv2d):
         
         # Randomly select kernel type from config group & log for debugging
         kernel_type:        str =       choice(self.__kernel_groups__[kernel_group])
-        self.__logger__.debug(f"Kernel type selected: {kernel_type}")
         
         # Initialize Tensor seed
         seed:               Tensor =    arange(size)

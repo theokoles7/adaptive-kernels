@@ -26,6 +26,7 @@ class NormalCNN(Module):
         channels_out:   int, 
         dim:            int,
         kernel:         str =   None,
+        kernel_group:   int =   13,
         location:       float = 0.0,
         scale:          float = 1.0,
         **kwargs
@@ -37,6 +38,7 @@ class NormalCNN(Module):
             * channels_out  (int):              Output channels.
             * dim           (int):              Dimension of image (relevant for reshaping, post-convolution).
             * kernel        (str, optional):    Kernel with which model will be set.
+            * kernel_group  (int, optional):    Kernel configuration type. Defaults to 13.
             * location      (float, optional):  Distribution location parameter. Defaults to 0.0.
             * scale         (float, optional):  Distribution scale parameter. Defaults to 1.0.
         """
@@ -44,36 +46,37 @@ class NormalCNN(Module):
         super(NormalCNN, self).__init__()
         
         # Initialize logger
-        self.__logger__:    Logger =    LOGGER.getChild(suffix = 'normal-cnn')
+        self.__logger__:        Logger =        LOGGER.getChild(suffix = 'normal-cnn')
         
         # Log initialization parameters for debugging
         self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
     
         # Initialie model data record
-        self._model_data_:  dict =  {}
+        self._model_data_:      dict =          {}
 
         # Initialize distribution parameters
-        self._kernel_:      str =           kernel
-        self._locations_:   list[float] =   [location]*5
-        self._scales_:      list[float] =   [scale]*5
+        self._kernel_:          str =           kernel
+        self._kernel_group_:    int =           kernel_group
+        self._locations_:       list[float] =   [location]*5
+        self._scales_:          list[float] =   [scale]*5
 
         # Convolving layers
-        self._conv1_:       Conv2d =        Conv2d(channels_in,  32, kernel_size=3, padding=1)
-        self._conv2_:       Conv2d =        Conv2d(         32,  64, kernel_size=3, padding=1)
-        self._conv3_:       Conv2d =        Conv2d(         64, 128, kernel_size=3, padding=1)
-        self._conv4_:       Conv2d =        Conv2d(        128, 256, kernel_size=3, padding=1)
+        self._conv1_:           Conv2d =        Conv2d(in_channels = channels_in, out_channels =  32, kernel_size = 3, padding = 1)
+        self._conv2_:           Conv2d =        Conv2d(in_channels =          32, out_channels =  64, kernel_size = 3, padding = 1)
+        self._conv3_:           Conv2d =        Conv2d(in_channels =          64, out_channels = 128, kernel_size = 3, padding = 1)
+        self._conv4_:           Conv2d =        Conv2d(in_channels =         128, out_channels = 256, kernel_size = 3, padding = 1)
 
         # Max pooling layers
-        self._pool1_:       MaxPool2d =     MaxPool2d(kernel_size=2, stride=2)
-        self._pool2_:       MaxPool2d =     MaxPool2d(kernel_size=2, stride=2)
-        self._pool3_:       MaxPool2d =     MaxPool2d(kernel_size=2, stride=2)
-        self._pool4_:       MaxPool2d =     MaxPool2d(kernel_size=2, stride=2)
+        self._pool1_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
+        self._pool2_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
+        self._pool3_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
+        self._pool4_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
 
         # FC layer
-        self._fc_:          Linear =        Linear(dim**2, 1024)
+        self._fc_:              Linear =        Linear(in_features = dim**2, out_features = 1024)
 
         # Classifier
-        self._classifier_:  Linear =        Linear(1024, channels_out)
+        self._classifier_:      Linear =        Linear(in_features = 1024, out_features = channels_out)
 
     def forward(self,
         X:  Tensor
@@ -199,11 +202,12 @@ class NormalCNN(Module):
         ):
             # Set kernel
             self.__setattr__(name = kernel, value = load_kernel(
-                kernel =    self._kernel_,
-                size =      size,
-                channels =  channel_size,
-                location =  location,
-                scale =     scale
+                kernel =        self._kernel_,
+                kernel_group =  self._kernel_group_,
+                size =          size,
+                channels =      channel_size,
+                location =      location,
+                scale =         scale
             ))
             
         # Set model on GPU if available

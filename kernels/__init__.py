@@ -12,6 +12,7 @@ def load_kernel(
     kernel_group:   int =   13,
     location:       float = 0.0,
     scale:          float = 1.0,
+    channels:       int =   3,
     **kwargs
 ) -> Kernel:
     """# Load specified kernel.
@@ -21,6 +22,7 @@ def load_kernel(
         * kernel_group  (int):              Kernel configuration type. Defaults to 13.
         * location      (float, optional):  Distribution location parameter.
         * scale         (float, optional):  Distribution scale parameter.
+        * channels      (int, optional):    Input channels. Defaults to 3.
 
     ## Returns:
         * Kernel:   Selected kernel, initialized and ready for convolving.

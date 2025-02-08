@@ -131,8 +131,17 @@ def run_job(
         # Set new kernels if using distribution kernel
         if kernel is not None: _model_.set_kernels(epoch = epoch, kernel_size = kernel_size)
                 
-        # Place model on GPU if available
+        # Place model on GPU if available (has to be done every time kernels are updated)
         if is_available(): _model_.cuda()
+        
+        # If epoch matches decay rate interval
+        if (
+            epoch !=    0                           and 
+            epoch %     _lr_decay_interval_ == 0    and
+            epoch <     _lr_decay_limit_
+        ):
+            # Administer learning rate decay
+            for parameter in _optimizer_.param_groups:  parameter["lr"] /= 10
         
         # Initialize progress bar
         with tqdm(

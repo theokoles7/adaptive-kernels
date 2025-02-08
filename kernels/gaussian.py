@@ -1,5 +1,7 @@
 """Gaussian distribution utilities."""
 
+__all__ = ["GaussianKernel"]
+
 from math       import pi
 from typing     import override
 

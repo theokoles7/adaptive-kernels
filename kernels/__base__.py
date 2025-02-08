@@ -1,5 +1,8 @@
 """Base implementation of kernel classes."""
 
+__all__ = ["Kernel"]
+
+from json       import dumps
 from logging    import Logger
 from random     import choice
 
@@ -30,10 +33,10 @@ class Kernel(Conv2d):
     
     def __init__(self,
         kernel_group:   int =   13,
+        kernel_size:    int =   3,
         location:       float = 0.0,
         scale:          float = 1.0,
         channels:       int =   3,
-        size:           int =   3,
         **kwargs
     ):
         """# Initialize Kernel object.
@@ -41,26 +44,26 @@ class Kernel(Conv2d):
         ## Args:
             * kernel_group  (int, optional):    Configuration group from which kernel type will be 
                                                 randomly selected. Defaults to 13th group.
+            * kernel_size   (int, optional):    Kernel size (square). Defaults to 3.
             * location      (float, optional):  Distribution location parameter.
             * scale         (float, optional):  Distribution scale parameter.
             * channels      (int, optional):    Input channels. Defaults to 3.
-            * size          (int, optional):    Kernel size (square). Defaults to 3.
         """
         # Initialize Conv2d parent object
         super(Kernel, self).__init__(
             in_channels =   channels,
             out_channels =  channels,
-            kernel_size =   size,
+            kernel_size =   kernel_size,
             groups =        channels,
             bias =          False,
-            padding =       (1 if size == 3 else (2 if size == 5 else 0))
+            padding =       (1 if kernel_size == 3 else (2 if kernel_size == 5 else 0))
         )
         
         # Initialize logger
         self.__logger__:    Logger =    LOGGER.getChild(suffix = self.__class__.__name__.lower())
         
-        # Log kernel group for debugging
-        self.__logger__.debug(f"Kernel group selected: {kernel_group}")
+        # Log initialization parameters for debugging
+        self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
         
         # Initialize location & scale attributes
         self._location_:    float =     location
@@ -68,14 +71,13 @@ class Kernel(Conv2d):
         
         # Randomly select kernel type from config group & log for debugging
         kernel_type:        str =       choice(self.__kernel_groups__[kernel_group])
-        self.__logger__.debug(f"Kernel type selected: {kernel_type}")
         
         # Initialize Tensor seed
-        seed:               Tensor =    arange(size)
+        seed:               Tensor =    arange(kernel_size)
         
-        # Duplicate Tensor to have {size} copies (basically new Tensor produced here will be size x 
+        # Duplicate Tensor to have {kernel_size} copies (basically new Tensor produced here will be size x 
         # size x size)
-        x_grid:             Tensor =    seed.repeat(size).view(size, size)
+        x_grid:             Tensor =    seed.repeat(kernel_size).view(kernel_size, kernel_size)
         
         # Record transpose
         y_grid:             Tensor =    x_grid.t()
@@ -110,7 +112,7 @@ class Kernel(Conv2d):
         self.__logger__.debug(f"{kernel_type.upper()}:\n{kernel}")
         
         # Reshape kernel
-        kernel:             Tensor =    kernel.view(1, 1, size, size).repeat(channels, 1, 1, 1)
+        kernel:             Tensor =    kernel.view(1, 1, kernel_size, kernel_size).repeat(channels, 1, 1, 1)
         
         # Set kernel for Conv2d layer
         self.weight.data =              kernel

@@ -1,5 +1,7 @@
 """Job argument definitions."""
 
+__all__ = ["add_job_parser"]
+
 from argparse                   import ArgumentParser, _SubParsersAction
 
 from utils.arguments.datasets   import  (

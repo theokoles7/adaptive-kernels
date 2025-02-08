@@ -1,5 +1,7 @@
 """Laplace kernel argument definitions."""
 
+__all__ = ["add_laplace_parser"]
+
 from argparse   import ArgumentParser, _SubParsersAction
 
 def add_laplace_parser(
@@ -32,7 +34,7 @@ def add_laplace_parser(
     )
     
     _parser_.add_argument(
-        "--size",
+        "--kernel-size",
         type =      int,
         default =   3,
         help =      """Kernel size (square). Defaults to 3."""
@@ -41,6 +43,7 @@ def add_laplace_parser(
     _parser_.add_argument(
         "--kernel-group",
         type =      int,
+        choices =   range(1, 14),
         default =   13,
         help =      """Kernel configuration type. Defaults to 13."""
     )

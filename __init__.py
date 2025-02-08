@@ -1,1 +1,3 @@
-__all__ = ['commands', 'datasets', 'kernels', 'models', 'utils', 'main', 'setup']
+"""Adaptive-Kernels package."""
+
+__all__ = ["commands", "datasets", "kernels", "main", "models", "reporting", "setup", "utils"]

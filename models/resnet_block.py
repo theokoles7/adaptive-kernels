@@ -1,5 +1,7 @@
 """Resnet model block."""
 
+__all__ = ["ResnetBlock"]
+
 from json                   import dumps
 from logging                import Logger
 
@@ -51,12 +53,30 @@ class ResnetBlock(Module):
         self._scales_:              list[float] =   [scale]*5
 
         # Batch normalization layers
-        self._bn1_:                 BatchNorm2d =   BatchNorm2d(num_features = channels_out)
-        self._bn2_:                 BatchNorm2d =   BatchNorm2d(num_features = channels_out)
+        self._bn1_:                 BatchNorm2d =   BatchNorm2d(
+                                                        num_features =      channels_out
+                                                    )
+        self._bn2_:                 BatchNorm2d =   BatchNorm2d(
+                                                        num_features =      channels_out
+                                                    )
 
         # Convolving layers
-        self._conv1_:               Conv2d =        Conv2d(in_channels = channels_in,  out_channels = channels_out, kernel_size = 3, stride = stride, padding = 1, bias = False)
-        self._conv2_:               Conv2d =        Conv2d(in_channels = channels_out, out_channels = channels_out, kernel_size = 3, stride = 1,      padding = 1, bias = False)
+        self._conv1_:               Conv2d =        Conv2d(
+                                                        in_channels =       channels_in,
+                                                        out_channels =      channels_out,
+                                                        kernel_size =       3,
+                                                        stride =            stride,
+                                                        padding =           1,
+                                                        bias =              False
+                                                    )
+        self._conv2_:               Conv2d =        Conv2d(
+                                                        in_channels =       channels_out,
+                                                        out_channels =      channels_out,
+                                                        kernel_size =       3,
+                                                        stride =            1,
+                                                        padding =           1,
+                                                        bias =              False
+                                                    )
 
         # Shortcut layer
         self._shortcut_:            Sequential =    Sequential()
@@ -69,8 +89,16 @@ class ResnetBlock(Module):
             
             # Define shortcut
             self._shortcut_:        Sequential =    Sequential(
-                                                        Conv2d(in_channels = channels_in, out_channels = channels_out, kernel_size = 1, stride = stride, bias = False),
-                                                        BatchNorm2d(num_features = channels_out)
+                                                        Conv2d(
+                                                            in_channels =   channels_in,
+                                                            out_channels =  channels_out,
+                                                            kernel_size =   1,
+                                                            stride =        stride,
+                                                            bias =          False
+                                                        ),
+                                                        BatchNorm2d(
+                                                            num_features =  channels_out
+                                                        )
                                                     )
 
     def forward(self, 

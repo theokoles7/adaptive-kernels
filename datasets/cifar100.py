@@ -1,5 +1,7 @@
 """Cifar 100 dataset and utilities."""
 
+__all__ = ["Cifar100"]
+
 from json                   import dumps
 from logging                import Logger
 from typing                 import override

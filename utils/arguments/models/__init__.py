@@ -1,3 +1,5 @@
+"""Model arguments package."""
+
 __all__ = ["normal", "resnet", "vgg"]
 
 from utils.arguments.models.normal  import add_normal_cnn_parser

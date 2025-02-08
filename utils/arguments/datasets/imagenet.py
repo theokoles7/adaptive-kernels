@@ -1,5 +1,7 @@
 """ImageNet dataset argument definitions."""
 
+__all__ = ["add_imagenet_parser"]
+
 from argparse               import ArgumentParser, _SubParsersAction
 
 from utils.arguments.models import  (

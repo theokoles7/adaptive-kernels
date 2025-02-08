@@ -1,5 +1,7 @@
 """VGG model argument definitions."""
 
+__all__ = ["add_vgg_parser"]
+
 from argparse                   import ArgumentParser, _SubParsersAction
 
 from utils.arguments.kernels    import  (
@@ -29,13 +31,6 @@ def add_vgg_parser(
         type =      float,
         default =   1e-1,
         help =      """Model's learning rate. Defaults to 0.1."""
-    )
-    
-    _parser_.add_argument(
-        "--save-parameters",
-        action =    "store_true",
-        default =   False,
-        help =      """Save model parameters on job completion."""
     )
     
     # Initialize sub-parser

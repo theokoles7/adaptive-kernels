@@ -1,11 +1,11 @@
 """Resnet-18 model."""
 
-from json                   import dumps
+__all__ = ["Resnet"]
+
+from json                   import dump, dumps
 from logging                import Logger
 
-from pandas                 import DataFrame
 from torch                  import mean, no_grad, std, Tensor
-from torch.cuda             import is_available
 from torch.nn               import BatchNorm2d, Conv2d, Linear, Module, Sequential
 from torch.nn.functional    import avg_pool2d, relu
 from torch.nn.init          import constant_, kaiming_normal_, normal_
@@ -17,16 +17,6 @@ from utils                  import LOGGER
 class Resnet(Module):
     """Resnet 18 model."""
 
-    # Initialize lyer-data file
-    _model_data = DataFrame(columns = [
-        'Data-STD',     'Data-Mean',
-        'Layer 1-STD',  'Layer 1-MEAN',
-        'Layer 5-STD',  'Layer 5-MEAN',
-        'Layer 9-STD',  'Layer 9-MEAN',
-        'Layer 13-STD', 'Layer 13-MEAN',
-        'Layer 18-STD', 'Layer 18-MEAN'
-    ])
-
     def __init__(self, 
         channels_in:    int, 
         channels_out:   int,
@@ -36,7 +26,7 @@ class Resnet(Module):
         scale:          float = 1.0,
         **kwargs
     ):
-        """# Initialize Resnet 18 model.
+        """# Initialize Resnet-18 model.
 
         # Args:
             * channels_in   (int):              Input channels.
@@ -54,6 +44,9 @@ class Resnet(Module):
         
         # Log initialization for debugging
         self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
+    
+        # Initialie model data record
+        self._model_data_:      dict =          {}
 
         # Initialize planes in
         self._planes_in_:       int =           64
@@ -65,19 +58,49 @@ class Resnet(Module):
         self._scales_:          list[float] =   [scale]*6
 
         # Batch normalization layer
-        self._bn_:              BatchNorm2d =   BatchNorm2d(64)
+        self._bn_:              BatchNorm2d =   BatchNorm2d(
+                                                    num_features =  64)
 
         # Convolving layer
-        self._conv_:            Conv2d =        Conv2d(channels_in, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self._conv_:            Conv2d =        Conv2d(
+                                                    in_channels =   channels_in, 
+                                                    out_channels =  64,
+                                                    kernel_size =   3,
+                                                    stride =        1,
+                                                    padding =       1,
+                                                    bias =          False
+                                                )
 
         # Block layers
-        self._layer1_:          Sequential =    self._make_layer_( 64, 2, stride=1)
-        self._layer2_:          Sequential =    self._make_layer_(128, 2, stride=2)
-        self._layer3_:          Sequential =    self._make_layer_(256, 2, stride=2)
-        self._layer4_:          Sequential =    self._make_layer_(512, 2, stride=2)
+        self._layer1_:          Sequential =    self._make_layer_(
+                                                    planes_out =    64,
+                                                    num_blocks =    2,
+                                                    stride =        1
+                                                )
+        
+        self._layer2_:          Sequential =    self._make_layer_(
+                                                    planes_out =    128,
+                                                    num_blocks =    2,
+                                                    stride =        2
+                                                )
+        
+        self._layer3_:          Sequential =    self._make_layer_(
+                                                    planes_out =    256,
+                                                    num_blocks =    2,
+                                                    stride =        2
+                                                )
+        
+        self._layer4_:          Sequential =    self._make_layer_(
+                                                    planes_out =    512,
+                                                    num_blocks =    2,
+                                                    stride =        2
+                                                )
 
         # Linear layer
-        self._linear_:          Linear =        Linear(512, channels_out)
+        self._linear_:          Linear =        Linear(
+                                                    in_features =   512,
+                                                    out_features =  channels_out
+                                                )
 
         # initialize layer weights
         self._initialize_weights_()
@@ -188,56 +211,6 @@ class Resnet(Module):
 
         # Return classification of sample
         return self._linear_(output.view(output.size(0), -1))
-    
-    def set_kernels(self,
-        epoch:      int,
-        size:       int
-    ) -> None:
-        """# Create/update kernels.
-
-        ## Args:
-            * epoch (int):  Epoch during which kernels are being set.
-            * size  (int):  Size with which kernels will be created.
-        """
-        # Log for debugging
-        self.__logger__.debug(f"EPOCH {epoch} locations: {self._locations_}, scales: {self._scales_}")
-
-        # Set kernel
-        self._kernel1_ = load_kernel(
-                            kernel =        self._kernel_,
-                            kernel_group =  self._kernel_group_,
-                            size =          size, 
-                            channels =      64, 
-                            location =      self._locations_[1], 
-                            scale =         self._scales_[1]
-                        )
-
-        # For each block layer...
-        for layer, location, scale in zip(
-            ["_layer1_", "_layer2_", "_layer3_", "_layer4_"],
-            self._locations_,
-            self._scales_
-        ):
-            
-            # For each block in block layer...
-            for child in self.__getattr__(layer).children():
-                
-                # Set kernel(s) for block
-                child.set_kernels()
-            
-        # Set model on GPU if available
-        if is_available():  self = self.cuda()
-    
-    def record_params(self) -> None:
-        """Record model distribution parameters."""
-        self._model_data[len(self._model_data)] = [
-            self._locations_[0], self.rate[0],
-            self._locations_[1], self.rate[1],
-            self._locations_[2], self.rate[2],
-            self._locations_[3], self.rate[3],
-            self._locations_[4], self.rate[4],
-            self._locations_[5], self.rate[5],
-        ]
 
     def _initialize_weights_(self) -> None:
         """Initialize weights in all layers."""
@@ -258,7 +231,7 @@ class Resnet(Module):
                 constant_(tensor =  module.weight,  val =   1)
                 constant_(tensor =  module.bias,    val =   0)
 
-            # Linear
+            # For linear layers
             elif isinstance(module, Linear):
                 
                 # Fill the input Tensor with values drawn from the normal distribution
@@ -307,12 +280,77 @@ class Resnet(Module):
 
         # Return block layer
         return Sequential(*layers)
-    
-    def to_csv(self, file_path: str) -> None:
-        """Dump model layer data to CSV file.
 
-        Args:
-            file_path (str): Path at which data file (CSV) will be written
+    def _record_parameters_(self,
+        epoch:  int
+    ) -> None:
+        """# Record mean & standard deviation of layers in model data file.
+        
+        ## Args:
+            * epoch (int):  Epoch at which parameters are being recorded.
         """
-        self.__logger__.info(f"Saving model layer data to {file_path}")
-        self._model_data.to_csv(file_path)
+        # Record epoch parameters
+        self._model_data_.update({
+            f"epoch-{epoch}":   {
+                "locations": {f"layer-{l}": self._locations_[l - 1] for l in range(1, len(self._locations_) + 1)},
+                "scales":    {f"layer-{s}": self._locations_[s - 1] for s in range(1, len(self._scales_)    + 1)}
+            }
+        })
+
+    def save_parameters(self, 
+        output_path:    str
+    ) -> None:
+        """# Dump model layer data to CSV file.
+
+        ## Args:
+            * output_path   (str):  Path at which data file (CSV) will be written
+        """
+        # Log action
+        self.__logger__.info(f"Saving model layer data to {output_path}")
+        
+        # Save model data to file
+        dump(
+            obj =       self._model_data_,
+            fp =        open(file = f"{output_path}/model_parameters.json", mode = "w"),
+            indent =    2,
+            default =   str
+        )
+    
+    def set_kernels(self,
+        epoch:          int,
+        kernel_size:    int
+    ) -> None:
+        """# Create/update kernels.
+
+        ## Args:
+            * epoch         (int):              Epoch during which kernels are being set.
+            * kernel_size   (int, optional):    Size with which kernels will be created.
+        """
+        # Log for debugging
+        self.__logger__.debug(f"EPOCH {epoch} locations: {self._locations_}, scales: {self._scales_}")
+        
+        # Set current epoch
+        self._epoch_:   int =   epoch
+
+        # Set kernel
+        self._kernel1_ = load_kernel(
+                            kernel =        self._kernel_,
+                            kernel_group =  self._kernel_group_,
+                            kernel_size =   kernel_size, 
+                            channels =      64, 
+                            location =      self._locations_[1], 
+                            scale =         self._scales_[1]
+                        )
+
+        # For each block layer...
+        for layer, location, scale in zip(
+            ["_layer1_", "_layer2_", "_layer3_", "_layer4_"],
+            self._locations_,
+            self._scales_
+        ):
+            
+            # For each block in block layer...
+            for child in self.__getattr__(layer).children():
+                
+                # Set kernel(s) for block
+                child.set_kernels()

@@ -1,5 +1,7 @@
 """Gumbel kernel utilities."""
 
+__all__ = ["GumbelKernel"]
+
 from typing     import override
 
 from torch      import exp, sum, Tensor
@@ -22,7 +24,7 @@ class GumbelKernel(Kernel):
             * Tensor:   Gumbel distribution kernel.
         """
         # Log for debugging
-        self.__logger__.info(f"Calculating Gumbel distribution (location: {self._location_}, scale {self._scale_})")
+        self.__logger__.debug(f"Calculating Gumbel distribution (location: {self._location_}, scale {self._scale_})")
 
         # Calculate Gumbel kernel
         return (

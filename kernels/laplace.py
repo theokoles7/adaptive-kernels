@@ -1,5 +1,7 @@
 """Laplace kernel utilities."""
 
+__all__ = ["LaplaceKernel"]
+
 from typing     import override
 
 from torch      import exp, sum, Tensor
@@ -22,7 +24,7 @@ class LaplaceKernel(Kernel):
             * Tensor:   Laplace distribution kernel.
         """
         # Log for debugging
-        self.__logger__.info(f"Calculating Laplace distribution (location: {self._location_}, scale {self._scale_})")
+        self.__logger__.debug(f"Calculating Laplace distribution (locations: {self._location_}, scales {self._scale_})")
 
         # Calculate Laplace kernel
         return (

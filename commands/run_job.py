@@ -48,8 +48,8 @@ def run_job(
         
     ## Kernel Args
         * kernel            (str, optional):    Kernel with which model will be loaded.
-        * kernel_size       (int, optional):    Kernel size (square). Defaults to 3.
         * kernel_group      (int, optional):    Kernel configuration group. Defaults to 13.
+        * kernel_size       (int, optional):    Kernel size (square). Defaults to 3.
         * location          (float, optional):  Distribution location parameter. Defaults to 0.0.
         * scale             (float, optional):  Distribution scale parameter. Defaults to 1.0.
         
@@ -196,6 +196,9 @@ def run_job(
             
             # Update job statistics for epoch
             _job_statistics_["epochs"].update({epoch: {"train_accuracy": accuracy, "train_loss": loss.item()}})
+            
+            # Record model parameters
+            _model_._record_parameters_(epoch = epoch)
 
     # +============================================================================================+
     # | VALIDATION                                                                                 |
@@ -321,6 +324,5 @@ def run_job(
     # Save model parameters to file
     _model_.save_parameters(output_path = _output_path_)
         
-    
     # Return job statistics
     return _job_statistics_

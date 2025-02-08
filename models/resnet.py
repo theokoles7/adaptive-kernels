@@ -209,9 +209,6 @@ class Resnet(Module):
             # Calculate mean & standard deviation of layer output
             self._locations_[5], self._scales_[5] = mean(y).item(), std(y).item()
 
-        # Record parameters in data file if training
-        if self.training: self._record_parameters_()
-
         # Return classification of sample
         return self._linear_(output.view(output.size(0), -1))
 
@@ -284,11 +281,17 @@ class Resnet(Module):
         # Return block layer
         return Sequential(*layers)
 
-    def _record_parameters_(self) -> None:
-        """# Record mean & standard deviation of layers in model data file."""
+    def _record_parameters_(self,
+        epoch:  int
+    ) -> None:
+        """# Record mean & standard deviation of layers in model data file.
+        
+        ## Args:
+            * epoch (int):  Epoch at which parameters are being recorded.
+        """
         # Record epoch parameters
         self._model_data_.update({
-            f"epoch-{self._epoch_}":   {
+            f"epoch-{epoch}":   {
                 "locations": {f"layer-{l}": self._locations_[l - 1] for l in range(1, len(self._locations_) + 1)},
                 "scales":    {f"layer-{s}": self._locations_[s - 1] for s in range(1, len(self._scales_)    + 1)}
             }

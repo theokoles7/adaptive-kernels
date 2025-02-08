@@ -43,6 +43,7 @@ def add_cauchy_parser(
     _parser_.add_argument(
         "--kernel-group",
         type =      int,
+        choices =   range(1, 14),
         default =   13,
         help =      """Kernel configuration type. Defaults to 13."""
     )

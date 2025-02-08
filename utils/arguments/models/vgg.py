@@ -33,13 +33,6 @@ def add_vgg_parser(
         help =      """Model's learning rate. Defaults to 0.1."""
     )
     
-    _parser_.add_argument(
-        "--save-parameters",
-        action =    "store_true",
-        default =   False,
-        help =      """Save model parameters on job completion."""
-    )
-    
     # Initialize sub-parser
     _subparser_:    _SubParsersAction = _parser_.add_subparsers(
         dest =      "kernel",

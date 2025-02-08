@@ -193,3 +193,6 @@ def run_experiment(
         mode =      "w", 
         encoding =  "utf-8"
     ) as file_out: dump(obj = _experiment_statistics_, fp = file_out, indent = 2, default = str)
+    
+    # Log experiment results
+    __logger__.info(f"Experiment record achievements: {dumps(obj = _experiment_statistics_['dataset_performance_records'], indent = 2, default = str)}")

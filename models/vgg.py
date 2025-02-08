@@ -1,18 +1,22 @@
-"""VGG 16 utilities."""
+"""VGG-16 model."""
 
-import pandas as pd, torch, torch.nn as nn, torch.nn.functional as F
+from json           import dumps
+from logging        import Logger
 
-from kernels                import load_kernel
-from utils      import ARGS, LOGGER
+from pandas         import DataFrame
+from torch          import mean, no_grad, std, Tensor
+from torch.cuda     import is_available
+from torch.nn       import BatchNorm2d, Conv2d, Dropout, Linear, MaxPool2d, Module, ReLU, Sequential
+from torch.nn.init  import constant_, kaiming_normal_, normal_
 
-class VGG(nn.Module):
+from kernels        import load_kernel
+from utils          import LOGGER
+
+class VGG(Module):
     """VGG 16 model."""
 
-    # Initialize logger
-    _logger = LOGGER.getChild(suffix = 'vgg')
-
     # Initializemodel data file
-    _model_data = pd.DataFrame(columns=[
+    _model_data = DataFrame(columns=[
         'Input Mean',    'Input STD',
         'Layer 3-MEAN',  'Layer 3-STD',
         'Layer 6-MEAN',  'Layer 6-STD',
@@ -21,152 +25,364 @@ class VGG(nn.Module):
         'Layer 16-MEAN', 'Layer 16-STD',
     ])
 
-    def __init__(self, channels_in: int, channels_out: int):
-        """Initialize VGG 16 model.
+    def __init__(self, 
+        channels_in:    int, 
+        channels_out:   int,
+        kernel:         str =   None,
+        kernel_group:   int =   13,
+        location:       float = 0.0,
+        scale:          float = 1.0,
+        **kwargs
+    ):
+        """# Initialize VGG-16 model.
 
-        Args:
-            channels_in (int): Input channels
-            channels_out (int): Output channels
+        ## Args:
+            * channels_in   (int):              Input channels.
+            * channels_out  (int):              Output channels.
+            * kernel        (str, optional):    Kernel with which model will be set.
+            * kernel_group  (int, optional):    Kernel configuration type. Defaults to 13.
+            * location      (float, optional):  Distribution location parameter. Defaults to 0.0.
+            * scale         (float, optional):  Distribution scale parameter. Defaults to 1.0.
         """
+        # Initialize Module object
         super(VGG, self).__init__()
 
+        # Initialize logger
+        self.__logger__:        Logger =        LOGGER.getChild(suffix = 'vgg')
+        
+        # Log initialization for debugging
+        self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
+
         # Initialize distribution parameters
-        self.location =     [(ARGS.location if ARGS.distribution != "poisson" else ARGS.rate) if ARGS.distribution else 0.0]*6
-        self.scale =        [ARGS.scale if ARGS.distribution else 1.0]*6
+        self._kernel_:          str =           kernel
+        self._kernel_group_:    int =           kernel_group
+        self._locations_:       list[float] =   [location]*6
+        self._scales_:          list[float] =   [scale]*6
 
         # Convolving layers
-        self.conv1 =        nn.Sequential(nn.Conv2d(channels_in,  64, 3, padding=1), nn.ReLU(), nn.Conv2d(  64,  64, 3, padding=1))
-        self.conv2 =        nn.Sequential(nn.Conv2d(         64, 128, 3, padding=1), nn.ReLU(), nn.Conv2d( 128, 128, 3, padding=1))
-        self.conv3 =        nn.Sequential(nn.Conv2d(        128, 256, 3, padding=1), nn.ReLU(), nn.Conv2d( 256, 256, 3, padding=1))
-        self.conv4 =        nn.Sequential(nn.Conv2d(        256, 512, 3, padding=1), nn.ReLU(), nn.Conv2d( 512, 512, 3, padding=1))
-        self.conv5 =        nn.Sequential(nn.Conv2d(        512, 512, 3, padding=1), nn.ReLU(), nn.Conv2d( 512, 512, 3, padding=1))
+        self._conv1_:           Sequential =    Sequential(
+                                                    Conv2d(
+                                                        in_channels =   channels_in,
+                                                        out_channels =  64,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    ),
+                                                    ReLU(),
+                                                    Conv2d(
+                                                        in_channels =   64,
+                                                        out_channels =  64,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    )
+                                                )
+        
+        self._conv2_:           Sequential =    Sequential(
+                                                    Conv2d(
+                                                        in_channels =   64,
+                                                        out_channels =  128,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    ),
+                                                    ReLU(),
+                                                    Conv2d(
+                                                        in_channels =   128,
+                                                        out_channels =  128,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    )
+                                                )
+        
+        self._conv3_:           Sequential =    Sequential(
+                                                    Conv2d(
+                                                        in_channels =   128,
+                                                        out_channels =  256,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    ),
+                                                    ReLU(),
+                                                    Conv2d(
+                                                        in_channels =   256,
+                                                        out_channels =  256,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    )
+                                                )
+        
+        self._conv4_:           Sequential =    Sequential(
+                                                    Conv2d(
+                                                        in_channels =   256,
+                                                        out_channels =  512,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    ),
+                                                    ReLU(),
+                                                    Conv2d(
+                                                        in_channels =   512,
+                                                        out_channels =  512,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    )
+                                                )
+        
+        self._conv5_:           Sequential =    Sequential(
+                                                    Conv2d(
+                                                        in_channels =   512,
+                                                        out_channels =  512,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    ),
+                                                    ReLU(),
+                                                    Conv2d(
+                                                        in_channels =   512,
+                                                        out_channels =  512,
+                                                        kernel_size =   3,
+                                                        padding =       1
+                                                    )
+                                                )
 
         # Pooling layers
-        self.pool1 =        nn.Sequential(nn.ReLU(), nn.MaxPool2d(2, stride=2))
-        self.pool2 =        nn.Sequential(nn.ReLU(), nn.MaxPool2d(2, stride=2))
-        self.pool3 =        nn.Sequential(nn.ReLU(), nn.MaxPool2d(2, stride=2))
-        self.pool4 =        nn.Sequential(nn.ReLU(), nn.MaxPool2d(2, stride=2))
-        self.pool5 =        nn.Sequential(nn.ReLU(), nn.MaxPool2d(2, stride=2))
+        self._pool1_:           Sequential =    Sequential(
+                                                    ReLU(),
+                                                    MaxPool2d(
+                                                        kernel_size =   2,
+                                                        stride =        2
+                                                    )
+                                                )
+        self._pool2_:           Sequential =    Sequential(
+                                                    ReLU(),
+                                                    MaxPool2d(
+                                                        kernel_size =   2,
+                                                        stride =        2
+                                                    )
+                                                )
+        self._pool3_:           Sequential =    Sequential(
+                                                    ReLU(),
+                                                    MaxPool2d(
+                                                        kernel_size =   2,
+                                                        stride =        2
+                                                    )
+                                                )
+        self._pool4_:           Sequential =    Sequential(
+                                                    ReLU(),
+                                                    MaxPool2d(
+                                                        kernel_size =   2,
+                                                        stride =        2
+                                                    )
+                                                )
+        self._pool5_:           Sequential =    Sequential(
+                                                    ReLU(),
+                                                    MaxPool2d(
+                                                        kernel_size =   2,
+                                                        stride =        2
+                                                    )
+                                                )
 
         # Classifier
-        self.classifier =   nn.Sequential(
-            nn.Linear( 512, 4096), nn.ReLU(), torch.nn.Dropout(),
-            nn.Linear(4096, 4096), nn.ReLU(), torch.nn.Dropout(),
-            nn.Linear(4096, channels_out)
-        )
+        self.classifier:        Sequential =    Sequential(
+                                                    Linear(
+                                                        in_features =   512,
+                                                        out_features =  4096
+                                                    ), 
+                                                    ReLU(), 
+                                                    Dropout(),
+                                                    Linear(
+                                                        in_features =   4096,
+                                                        out_features =  4096
+                                                    ),
+                                                    ReLU(),
+                                                    Dropout(),
+                                                    Linear(
+                                                        in_features =   4096,
+                                                        out_features =  channels_out
+                                                    )
+                                                )
 
-        self._initialize_weights()
+        # Initialize layer weigthts
+        self._initialize_weights_()
 
-    def forward(self, X: torch.Tensor, return_intermediate: bool = False) -> torch.Tensor:
-        """Feed input through network and provide output.
+    def forward(self,
+        X: Tensor
+    ) -> Tensor:
+        """# Feed input through network and provide output.
 
-        Args:
-            X (torch.Tensor): Input tensor
-            return_intermediate (bool, optional): If True, returns intermediate output, prior to classification. Defaults to False.
+        ## Args:
+            * X                     (Tensor):           Input tensor.
+            * return_intermediate   (bool, optional):   If True, returns intermediate output, prior 
+                                                        to classification. Defaults to False.
 
-        Returns:
-            torch.Tensor: Output tensor
+        ## Returns:
+            * Tensor:   Output tensor.
         """
         # INPUT LAYER =============================================================================
-        self._logger.debug(f"Input layer shape: {X.shape}")
+        self.__logger__.debug(f"Input shape: {X.shape}")
 
-        with torch.no_grad(): 
-            y = X.float()
-            self.location[0], self.scale[0] = torch.mean(y).item(), torch.std(y).item()
+        # Without taking gradients...
+        with no_grad(): 
+            y:  Tensor =    X.float()
+            
+            # Calculate mean & standard deviation of layer output
+            self._locations_[0], self._scales_[0] = mean(y).item(), std(y).item()
 
         # LAYER 1 =================================================================================
-        x1 = self.conv1(X)
+        # Pass through first convolving layer
+        x1:     Tensor =    self._conv1_(X)
 
-        self._logger.debug(f"Layer 1 shape: {x1.shape}")
+        # Log first layer output for debugging
+        self.__logger__.debug(f"Layer 1 output shape: {x1.shape}")
 
-        with torch.no_grad(): 
-            y = x1.float()
-            self.location[1], self.scale[1] = torch.mean(y).item(), torch.std(y).item()
+        # Without taking gradients...
+        with no_grad(): 
+            
+            # Convert tensor to float values
+            y:  Tensor =    x1.float()
+            
+            # Calculate mean & standard deviation of layer output
+            self._locations_[1], self._scales_[1] = mean(y).item(), std(y).item()
 
         # LAYER 2 =================================================================================
-        x2 = self.conv2(self.pool1(self.kernel1(x1) if ARGS.distribution else x1))
+        # Pass through second convolving layer
+        x2:     Tensor =    self._conv2_(self._pool1_(self._kernel1_(x1) if self._kernel_ is not None else x1))
 
-        self._logger.debug(f"Layer 2 shape: {x2.shape}")
+        self.__logger__.debug(f"Layer 2 output shape: {x2.shape}")
 
-        with torch.no_grad(): 
-            y = x2.float()
-            self.location[2], self.scale[2] = torch.mean(y).item(), torch.std(y).item()
+        # Without taking gradients...
+        with no_grad(): 
+            
+            # Convert tensor to float values
+            y:  Tensor =    x2.float()
+            
+            # Calculate mean & standard deviation of layer output
+            self._locations_[2], self._scales_[2] = mean(y).item(), std(y).item()
 
         # LAYER 3 =================================================================================
-        x3 = self.conv3(self.pool2(self.kernel1(x2) if ARGS.distribution else x2))
+        # Pass through third convolving layer
+        x3:     Tensor =    self._conv3_(self._pool2_(self._kernel2_(x2) if self._kernel_ is not None else x2))
 
-        self._logger.debug(f"Layer 3 shape: {x3.shape}")
+        self.__logger__.debug(f"Layer 3 output shape: {x3.shape}")
 
-        with torch.no_grad(): 
-            y = x3.float()
-            self.location[3], self.scale[3] = torch.mean(y).item(), torch.std(y).item()
+        # Without taking gradients...
+        with no_grad(): 
+            
+            # Convert tensor to float values
+            y:  Tensor =    x3.float()
+            
+            # Calculate mean & standard deviation of layer output
+            self._locations_[3], self._scales_[3] = mean(y).item(), std(y).item()
 
         # LAYER 4 =================================================================================
-        x4 = self.conv4(self.pool3(self.kernel1(x3) if ARGS.distribution else x3))
+        # Pass through fourth convolving layer
+        x4:     Tensor =    self._conv4_(self._pool3_(self._kernel3_(x3) if self._kernel_ is not None else x3))
 
-        self._logger.debug(f"Layer 4 shape: {x4.shape}")
+        self.__logger__.debug(f"Layer 4 output shape: {x4.shape}")
 
-        with torch.no_grad(): 
-            y = x4.float()
-            self.location[4], self.scale[4] = torch.mean(y).item(), torch.std(y).item()
+        # Without taking gradients...
+        with no_grad(): 
+            
+            # Convert tensor to float values
+            y:  Tensor =    x4.float()
+            
+            # Calculate mean & standard deviation of layer output
+            self._locations_[4], self._scales_[4] = mean(y).item(), std(y).item()
 
         # LAYER 5 =================================================================================
-        x5 = self.conv5(self.pool4(self.kernel1(x4) if ARGS.distribution else x4))
+        # Pass through fifth convolving layer
+        x5:     Tensor =    self._conv5_(self._pool4_(self._kernel4_(x4) if self._kernel_ is not None else x4))
 
-        self._logger.debug(f"Layer 5 shape: {x5.shape}")
+        self.__logger__.debug(f"Layer 5 output shape: {x5.shape}")
 
-        with torch.no_grad(): 
-            y = x5.float()
-            self.location[5], self.scale[5] = torch.mean(y).item(), torch.std(y).item()
+        # Without taking gradients...
+        with no_grad(): 
+            
+            # Convert tensor to float values
+            y:  Tensor =    x5.float()
+            
+            # Calculate mean & standard deviation of layer output
+            self._locations_[5], self._scales_[5] = mean(y).item(), std(y).item()
 
         # OUTPUT LAYER ============================================================================
         # Record model distribution parameters
         if self.training: self.record_params()
 
-        output = self.pool5(self.kernel5(x5) if ARGS.distribution else x5)
+        # Pass through output convolving layer
+        output: Tensor =    self._pool5_(self._kernel5_(x5) if self._kernel_ is not None else x5)
+        
+        # Return classification
         return self.classifier(output.view(output.size(0), -1))
     
-    def set_kernels(self, epoch: int) -> None:
-        """Create/update kernels.
+    def set_kernels(self,
+        epoch:          int,
+        kernel_size:    int =   3
+    ) -> None:
+        """# Create/update kernels.
 
-        Args:
-            epoch (int): Current epoch number
+        ## Args:
+            * epoch         (int):              Current epoch number
+            * kernel_size   (int, optional):    Kernel size (square). Defaults to 3.
         """
-        self.kernel1 = get_kernel(ARGS.distribution, ARGS.kernel_size,  64, self.location[0], self.scale[0], self.location[0])
-        self.kernel2 = get_kernel(ARGS.distribution, ARGS.kernel_size, 128, self.location[1], self.scale[1], self.location[1])
-        self.kernel3 = get_kernel(ARGS.distribution, ARGS.kernel_size, 256, self.location[2], self.scale[2], self.location[2])
-        self.kernel4 = get_kernel(ARGS.distribution, ARGS.kernel_size, 512, self.location[3], self.scale[3], self.location[3])
-        self.kernel5 = get_kernel(ARGS.distribution, ARGS.kernel_size, 512, self.location[4], self.scale[4], self.location[4])
+        # Log for debugging
+        self.__logger__.debug(f"EPOCH {epoch} locations: {self._locations_}, scales: {self._scales_}")
+        
+        # Set current epoch
+        self._epoch_:   int =   epoch
+
+        # For each kernel needed...
+        for kernel, channel_size, location, scale in zip(
+            ["_kernel1_", "_kernel2_", "_kernel3_", "_kernel4_", "_kernel5_"],
+            [64, 128, 256, 512, 512],
+            self._locations_,
+            self._scales_
+        ):
+            # Set kernel
+            self.__setattr__(name = kernel, value = load_kernel(
+                kernel =        self._kernel_,
+                kernel_group =  self._kernel_group_,
+                kernel_size =   kernel_size,
+                channels =      channel_size,
+                location =      location,
+                scale =         scale
+            ))
+            
+        # Set model on GPU if available
+        if is_available():  self = self.cuda()
 
     def record_params(self) -> None:
         """Record model distribution parameters."""
         self._model_data.loc[len(self._model_data)] = [
-            self.location[0], self.scale[0],
-            self.location[1], self.scale[1],
-            self.location[2], self.scale[2],
-            self.location[3], self.scale[3],
-            self.location[4], self.scale[4],
-            self.location[5], self.scale[5],
+            self._locations_[0], self._scales_[0],
+            self._locations_[1], self._scales_[1],
+            self._locations_[2], self._scales_[2],
+            self._locations_[3], self._scales_[3],
+            self._locations_[4], self._scales_[4],
+            self._locations_[5], self._scales_[5],
         ]
 
-    def _initialize_weights(self) -> None:
+    def _initialize_weights_(self) -> None:
         """Initialize weights in all layers."""
-        for m in self.modules():
+        # For each module...
+        for module in self.modules():
 
-            # Convolving
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
-                if m.bias is not None: nn.init.constant_(m.bias, 0)
+            # For convolving layer(s)...
+            if isinstance(module, Conv2d):
+                
+                # Fill the input Tensor with values using a Kaiming normal distribution
+                kaiming_normal_(tensor = module.weight, mode = 'fan_in', nonlinearity = 'relu')
+                if module.bias is not None: constant_(module.bias, 0)
 
-            # Batch normalization
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias,   0)
+            # For batch normalization
+            elif isinstance(module, BatchNorm2d):
+                
+                # Fill the input Tensor with the value
+                constant_(tensor = module.weight, val = 1)
+                constant_(tensor = module.bias,   val = 0)
 
-            # Linear
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.constant_(m.bias, 0)
+            # For linear layers
+            elif isinstance(module, Linear):
+                
+                # Fill the input Tensor with values drawn from the normal distribution
+                normal_(tensor = module.weight, mean = 0, std = 0.01)
+                
+                # Fill the input Tensor with the value
+                constant_(tensor = module.bias, val = 0)
 
     def to_csv(self, file_path: str) -> None:
         """Dump model layer data to CSV file.
@@ -174,5 +390,5 @@ class VGG(nn.Module):
         Args:
             file_path (str): Path at which data file (CSV) will be written
         """
-        self._logger.info(f"Saving model layer data to {file_path}")
+        self.__logger__.info(f"Saving model layer data to {file_path}")
         self._model_data.to_csv(file_path)

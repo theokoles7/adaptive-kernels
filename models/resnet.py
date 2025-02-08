@@ -36,7 +36,7 @@ class Resnet(Module):
         scale:          float = 1.0,
         **kwargs
     ):
-        """# Initialize Resnet 18 model.
+        """# Initialize Resnet-18 model.
 
         # Args:
             * channels_in   (int):              Input channels.
@@ -65,19 +65,49 @@ class Resnet(Module):
         self._scales_:          list[float] =   [scale]*6
 
         # Batch normalization layer
-        self._bn_:              BatchNorm2d =   BatchNorm2d(64)
+        self._bn_:              BatchNorm2d =   BatchNorm2d(
+                                                    num_features =  64)
 
         # Convolving layer
-        self._conv_:            Conv2d =        Conv2d(channels_in, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self._conv_:            Conv2d =        Conv2d(
+                                                    in_channels =   channels_in, 
+                                                    out_channels =  64,
+                                                    kernel_size =   3,
+                                                    stride =        1,
+                                                    padding =       1,
+                                                    bias =          False
+                                                )
 
         # Block layers
-        self._layer1_:          Sequential =    self._make_layer_( 64, 2, stride=1)
-        self._layer2_:          Sequential =    self._make_layer_(128, 2, stride=2)
-        self._layer3_:          Sequential =    self._make_layer_(256, 2, stride=2)
-        self._layer4_:          Sequential =    self._make_layer_(512, 2, stride=2)
+        self._layer1_:          Sequential =    self._make_layer_(
+                                                    planes_out =    64,
+                                                    num_blocks =    2,
+                                                    stride =        1
+                                                )
+        
+        self._layer2_:          Sequential =    self._make_layer_(
+                                                    planes_out =    128,
+                                                    num_blocks =    2,
+                                                    stride =        2
+                                                )
+        
+        self._layer3_:          Sequential =    self._make_layer_(
+                                                    planes_out =    256,
+                                                    num_blocks =    2,
+                                                    stride =        2
+                                                )
+        
+        self._layer4_:          Sequential =    self._make_layer_(
+                                                    planes_out =    512,
+                                                    num_blocks =    2,
+                                                    stride =        2
+                                                )
 
         # Linear layer
-        self._linear_:          Linear =        Linear(512, channels_out)
+        self._linear_:          Linear =        Linear(
+                                                    in_features =   512,
+                                                    out_features =  channels_out
+                                                )
 
         # initialize layer weights
         self._initialize_weights_()
@@ -190,14 +220,14 @@ class Resnet(Module):
         return self._linear_(output.view(output.size(0), -1))
     
     def set_kernels(self,
-        epoch:      int,
-        size:       int
+        epoch:          int,
+        kernel_size:    int
     ) -> None:
         """# Create/update kernels.
 
         ## Args:
-            * epoch (int):  Epoch during which kernels are being set.
-            * size  (int):  Size with which kernels will be created.
+            * epoch         (int):              Epoch during which kernels are being set.
+            * kernel_size   (int, optional):    Size with which kernels will be created.
         """
         # Log for debugging
         self.__logger__.debug(f"EPOCH {epoch} locations: {self._locations_}, scales: {self._scales_}")
@@ -206,7 +236,7 @@ class Resnet(Module):
         self._kernel1_ = load_kernel(
                             kernel =        self._kernel_,
                             kernel_group =  self._kernel_group_,
-                            size =          size, 
+                            kernel_size =   kernel_size, 
                             channels =      64, 
                             location =      self._locations_[1], 
                             scale =         self._scales_[1]
@@ -258,7 +288,7 @@ class Resnet(Module):
                 constant_(tensor =  module.weight,  val =   1)
                 constant_(tensor =  module.bias,    val =   0)
 
-            # Linear
+            # For linear layers
             elif isinstance(module, Linear):
                 
                 # Fill the input Tensor with values drawn from the normal distribution

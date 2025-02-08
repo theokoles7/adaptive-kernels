@@ -21,7 +21,7 @@ def run_job(
     dataset:            str,
     model:              str,
     kernel:             str =   None,
-    size:               int =   3,
+    kernel_size:        int =   3,
     kernel_group:       int =   13,
     location:           float = 0.0,
     scale:              float = 1.0,
@@ -49,7 +49,7 @@ def run_job(
         
     ## Kernel Args
         * kernel            (str, optional):    Kernel with which model will be loaded.
-        * size              (int, optional):    Kernel size (square). Defaults to 3.
+        * kernel_size       (int, optional):    Kernel size (square). Defaults to 3.
         * kernel_group      (int, optional):    Kernel configuration group. Defaults to 13.
         * location          (float, optional):  Distribution location parameter. Defaults to 0.0.
         * scale             (float, optional):  Distribution scale parameter. Defaults to 1.0.
@@ -127,7 +127,7 @@ def run_job(
     for epoch in range(1, epochs + 1):
         
         # Set new kernels if using distribution kernel
-        if kernel is not None: _model_.set_kernels(epoch = epoch, size = size)
+        if kernel is not None: _model_.set_kernels(epoch = epoch, kernel_size = kernel_size)
         
         # Initialize progress bar
         with tqdm(

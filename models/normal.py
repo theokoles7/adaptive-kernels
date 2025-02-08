@@ -61,22 +61,66 @@ class NormalCNN(Module):
         self._scales_:          list[float] =   [scale]*5
 
         # Convolving layers
-        self._conv1_:           Conv2d =        Conv2d(in_channels = channels_in, out_channels =  32, kernel_size = 3, padding = 1)
-        self._conv2_:           Conv2d =        Conv2d(in_channels =          32, out_channels =  64, kernel_size = 3, padding = 1)
-        self._conv3_:           Conv2d =        Conv2d(in_channels =          64, out_channels = 128, kernel_size = 3, padding = 1)
-        self._conv4_:           Conv2d =        Conv2d(in_channels =         128, out_channels = 256, kernel_size = 3, padding = 1)
+        self._conv1_:           Conv2d =        Conv2d(
+                                                    in_channels =   channels_in, 
+                                                    out_channels =  32, 
+                                                    kernel_size =   3, 
+                                                    padding =       1
+                                                )
+        
+        self._conv2_:           Conv2d =        Conv2d(
+                                                    in_channels =   32,
+                                                    out_channels =  64,
+                                                    kernel_size =   3,
+                                                    padding =       1
+                                                )
+        
+        self._conv3_:           Conv2d =        Conv2d(
+                                                    in_channels =   64,
+                                                    out_channels =  128,
+                                                    kernel_size =   3,
+                                                    padding =       1
+                                                )
+        
+        self._conv4_:           Conv2d =        Conv2d(
+                                                    in_channels =   128, 
+                                                    out_channels =  256,
+                                                    kernel_size =   3,
+                                                    padding =       1
+                                                )
 
         # Max pooling layers
-        self._pool1_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
-        self._pool2_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
-        self._pool3_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
-        self._pool4_:           MaxPool2d =     MaxPool2d(kernel_size = 2, stride = 2)
+        self._pool1_:           MaxPool2d =     MaxPool2d(
+                                                    kernel_size =   2,
+                                                    stride =        2
+                                                )
+        
+        self._pool2_:           MaxPool2d =     MaxPool2d(
+                                                    kernel_size =   2,
+                                                    stride =        2
+                                                )
+        
+        self._pool3_:           MaxPool2d =     MaxPool2d(
+                                                    kernel_size =   2,
+                                                    stride =        2
+                                                )
+        
+        self._pool4_:           MaxPool2d =     MaxPool2d(
+                                                    kernel_size =   2,
+                                                    stride =        2
+                                                )
 
         # FC layer
-        self._fc_:              Linear =        Linear(in_features = dim**2, out_features = 1024)
+        self._fc_:              Linear =        Linear(
+                                                    in_features =   dim ** 2,
+                                                    out_features =  1024
+                                                )
 
         # Classifier
-        self._classifier_:      Linear =        Linear(in_features = 1024, out_features = channels_out)
+        self._classifier_:      Linear =        Linear(
+                                                    in_features =   1024,
+                                                    out_features =  channels_out
+                                                )
 
     def forward(self,
         X:  Tensor
@@ -178,14 +222,14 @@ class NormalCNN(Module):
         return self._classifier_(relu(self._fc_(output.view(output.size(0), -1))))
     
     def set_kernels(self,
-        epoch:      int,
-        size:       int
+        epoch:          int,
+        kernel_size:    int =   3
     ) -> None:
         """# Create/update kernels.
 
         ## Args:
-            * epoch (int):  Epoch during which kernels are being set.
-            * size  (int):  Size with which kernels will be created.
+            * epoch         (int):              Epoch during which kernels are being set.
+            * kernel_size   (int, optional):    Size with which kernels will be created.
         """
         # Log for debugging
         self.__logger__.debug(f"EPOCH {epoch} locations: {self._locations_}, scales: {self._scales_}")
@@ -204,7 +248,7 @@ class NormalCNN(Module):
             self.__setattr__(name = kernel, value = load_kernel(
                 kernel =        self._kernel_,
                 kernel_group =  self._kernel_group_,
-                size =          size,
+                kernel_size =   kernel_size,
                 channels =      channel_size,
                 location =      location,
                 scale =         scale

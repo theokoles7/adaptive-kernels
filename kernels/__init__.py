@@ -10,6 +10,7 @@ from kernels.laplace            import LaplaceKernel
 def load_kernel(
     kernel:         str,
     kernel_group:   int =   13,
+    kernel_size:    int =   3,
     location:       float = 0.0,
     scale:          float = 1.0,
     channels:       int =   3,
@@ -20,6 +21,7 @@ def load_kernel(
     ## Args:
         * kernel        (str):              Kernel selection.
         * kernel_group  (int):              Kernel configuration type. Defaults to 13.
+        * kernel_size   (int, optional):    Kernel size (square). Defaults to 3.
         * location      (float, optional):  Distribution location parameter.
         * scale         (float, optional):  Distribution scale parameter.
         * channels      (int, optional):    Input channels. Defaults to 3.

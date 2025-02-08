@@ -32,7 +32,7 @@ def add_gaussian_parser(
     )
     
     _parser_.add_argument(
-        "--size",
+        "--kernel-size",
         type =      int,
         default =   3,
         help =      """Kernel size (square). Defaults to 3."""

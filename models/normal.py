@@ -253,9 +253,6 @@ class NormalCNN(Module):
                 location =      location,
                 scale =         scale
             ))
-            
-        # Set model on GPU if available
-        if is_available():  self = self.cuda()
 
     def record_parameters(self) -> None:
         """# Record mean & standard deviation of layers in model data file."""

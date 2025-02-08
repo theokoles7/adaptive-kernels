@@ -254,9 +254,6 @@ class Resnet(Module):
                 
                 # Set kernel(s) for block
                 child.set_kernels()
-            
-        # Set model on GPU if available
-        if is_available():  self = self.cuda()
     
     def record_params(self) -> None:
         """Record model distribution parameters."""

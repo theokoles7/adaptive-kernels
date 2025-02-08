@@ -1,5 +1,7 @@
 """Execute job process."""
 
+__all__ = ["run_job"]
+
 from json                   import dump, dumps
 from logging                import Logger
 from os                     import makedirs
@@ -128,6 +130,9 @@ def run_job(
         
         # Set new kernels if using distribution kernel
         if kernel is not None: _model_.set_kernels(epoch = epoch, kernel_size = kernel_size)
+                
+        # Place model on GPU if available
+        if is_available(): _model_.cuda()
         
         # Initialize progress bar
         with tqdm(

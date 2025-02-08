@@ -341,9 +341,6 @@ class VGG(Module):
                 location =      location,
                 scale =         scale
             ))
-            
-        # Set model on GPU if available
-        if is_available():  self = self.cuda()
 
     def record_params(self) -> None:
         """Record model distribution parameters."""

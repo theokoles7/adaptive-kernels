@@ -5,9 +5,7 @@ __all__ = ["NormalCNN"]
 from json                   import dump, dumps
 from logging                import Logger
 
-from pandas                 import DataFrame
 from torch                  import mean, no_grad, std, Tensor
-from torch.cuda             import is_available
 from torch.nn               import Conv2d, Linear, MaxPool2d, Module
 from torch.nn.functional    import relu
 
@@ -16,12 +14,6 @@ from utils                  import LOGGER
 
 class NormalCNN(Module):
     """Basic CNN model."""
-
-    # # Initialize layer-data file
-    # _model_data =   DataFrame(columns = [
-    #     'Data-STD',  'Layer 1-STD',  'Layer 2-STD',  'Layer 3-STD',  'Layer 4-STD',
-    #     'Data-Mean', 'Layer 1-MEAN', 'Layer 2-MEAN', 'Layer 3-MEAN', 'Layer 4-MEAN'
-    # ])
 
     def __init__(self,
         channels_in:    int, 
@@ -217,11 +209,40 @@ class NormalCNN(Module):
 
         self.__logger__.debug(f"Output shape: {output.shape}")
 
-        # # Record parameters in data file if training
-        # if self.training: self.record_params()
+        # Record parameters in data file if training
+        if self.training: self._record_parameters_()
 
         # Return classified output
         return self._classifier_(relu(self._fc_(output.view(output.size(0), -1))))
+
+    def _record_parameters_(self) -> None:
+        """# Record mean & standard deviation of layers in model data file."""
+        # Record epoch parameters
+        self._model_data_.update({
+            f"epoch-{self._epoch_}":   {
+                "locations": {f"layer-{l}": self._locations_[l - 1] for l in range(1, len(self._locations_) + 1)},
+                "scales":    {f"layer-{s}": self._locations_[s - 1] for s in range(1, len(self._scales_)    + 1)}
+            }
+        })
+
+    def save_parameters(self, 
+        output_path:    str
+    ) -> None:
+        """# Dump model layer data to CSV file.
+
+        ## Args:
+            * output_path   (str):  Path at which data file (CSV) will be written
+        """
+        # Log action
+        self.__logger__.info(f"Saving model layer data to {output_path}")
+        
+        # Save model data to file
+        dump(
+            obj =       self._model_data_,
+            fp =        open(file = f"{output_path}/model_parameters.json", mode = "w"),
+            indent =    2,
+            default =   str
+        )
     
     def set_kernels(self,
         epoch:          int,
@@ -255,32 +276,3 @@ class NormalCNN(Module):
                 location =      location,
                 scale =         scale
             ))
-
-    def record_parameters(self) -> None:
-        """# Record mean & standard deviation of layers in model data file."""
-        # Record epoch parameters
-        self._model_data_.update({
-            self._epoch_:   {
-                "location": self._locations_,
-                "scale":    self._scales_
-            }
-        })
-
-    def save_parameters(self, 
-        file_path:  str
-    ) -> None:
-        """# Dump model layer data to CSV file.
-
-        ## Args:
-            * file_path (str):  Path at which data file (CSV) will be written
-        """
-        # Log action
-        self.__logger__.info(f"Saving model layer data to {file_path}")
-        
-        # Save model data to file
-        dump(
-            obj =       self._model_data_,
-            fp =        open(file = file_path, mode = "w"),
-            indent =    2,
-            default =   str
-        )

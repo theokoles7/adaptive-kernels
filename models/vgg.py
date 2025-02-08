@@ -2,12 +2,10 @@
 
 __all__ = ["VGG"]
 
-from json           import dumps
+from json                   import dump, dumps
 from logging        import Logger
 
-from pandas         import DataFrame
 from torch          import mean, no_grad, std, Tensor
-from torch.cuda     import is_available
 from torch.nn       import BatchNorm2d, Conv2d, Dropout, Linear, MaxPool2d, Module, ReLU, Sequential
 from torch.nn.init  import constant_, kaiming_normal_, normal_
 
@@ -16,16 +14,6 @@ from utils          import LOGGER
 
 class VGG(Module):
     """VGG 16 model."""
-
-    # Initializemodel data file
-    _model_data = DataFrame(columns=[
-        'Input Mean',    'Input STD',
-        'Layer 3-MEAN',  'Layer 3-STD',
-        'Layer 6-MEAN',  'Layer 6-STD',
-        'Layer 9-MEAN',  'Layer 9-STD',
-        'Layer 12-MEAN', 'Layer 12-STD',
-        'Layer 16-MEAN', 'Layer 16-STD',
-    ])
 
     def __init__(self, 
         channels_in:    int, 
@@ -54,6 +42,9 @@ class VGG(Module):
         
         # Log initialization for debugging
         self.__logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
+    
+        # Initialie model data record
+        self._model_data_:      dict =          {}
 
         # Initialize distribution parameters
         self._kernel_:          str =           kernel
@@ -302,14 +293,71 @@ class VGG(Module):
             self._locations_[5], self._scales_[5] = mean(y).item(), std(y).item()
 
         # OUTPUT LAYER ============================================================================
-        # Record model distribution parameters
-        if self.training: self.record_params()
+        # Record parameters in data file if training
+        if self.training: self._record_parameters_()
 
         # Pass through output convolving layer
         output: Tensor =    self._pool5_(self._kernel5_(x5) if self._kernel_ is not None else x5)
         
         # Return classification
         return self.classifier(output.view(output.size(0), -1))
+
+    def _initialize_weights_(self) -> None:
+        """Initialize weights in all layers."""
+        # For each module...
+        for module in self.modules():
+
+            # For convolving layer(s)...
+            if isinstance(module, Conv2d):
+                
+                # Fill the input Tensor with values using a Kaiming normal distribution
+                kaiming_normal_(tensor = module.weight, mode = 'fan_in', nonlinearity = 'relu')
+                if module.bias is not None: constant_(module.bias, 0)
+
+            # For batch normalization
+            elif isinstance(module, BatchNorm2d):
+                
+                # Fill the input Tensor with the value
+                constant_(tensor = module.weight, val = 1)
+                constant_(tensor = module.bias,   val = 0)
+
+            # For linear layers
+            elif isinstance(module, Linear):
+                
+                # Fill the input Tensor with values drawn from the normal distribution
+                normal_(tensor = module.weight, mean = 0, std = 0.01)
+                
+                # Fill the input Tensor with the value
+                constant_(tensor = module.bias, val = 0)
+
+    def _record_parameters_(self) -> None:
+        """# Record mean & standard deviation of layers in model data file."""
+        # Record epoch parameters
+        self._model_data_.update({
+            f"epoch-{self._epoch_}":   {
+                "locations": {f"layer-{l}": self._locations_[l - 1] for l in range(1, len(self._locations_) + 1)},
+                "scales":    {f"layer-{s}": self._locations_[s - 1] for s in range(1, len(self._scales_)    + 1)}
+            }
+        })
+
+    def save_parameters(self, 
+        output_path:    str
+    ) -> None:
+        """# Dump model layer data to CSV file.
+
+        ## Args:
+            * output_path   (str):  Path at which data file (CSV) will be written
+        """
+        # Log action
+        self.__logger__.info(f"Saving model layer data to {output_path}")
+        
+        # Save model data to file
+        dump(
+            obj =       self._model_data_,
+            fp =        open(file = f"{output_path}/model_parameters.json", mode = "w"),
+            indent =    2,
+            default =   str
+        )
     
     def set_kernels(self,
         epoch:          int,
@@ -343,51 +391,3 @@ class VGG(Module):
                 location =      location,
                 scale =         scale
             ))
-
-    def record_params(self) -> None:
-        """Record model distribution parameters."""
-        self._model_data.loc[len(self._model_data)] = [
-            self._locations_[0], self._scales_[0],
-            self._locations_[1], self._scales_[1],
-            self._locations_[2], self._scales_[2],
-            self._locations_[3], self._scales_[3],
-            self._locations_[4], self._scales_[4],
-            self._locations_[5], self._scales_[5],
-        ]
-
-    def _initialize_weights_(self) -> None:
-        """Initialize weights in all layers."""
-        # For each module...
-        for module in self.modules():
-
-            # For convolving layer(s)...
-            if isinstance(module, Conv2d):
-                
-                # Fill the input Tensor with values using a Kaiming normal distribution
-                kaiming_normal_(tensor = module.weight, mode = 'fan_in', nonlinearity = 'relu')
-                if module.bias is not None: constant_(module.bias, 0)
-
-            # For batch normalization
-            elif isinstance(module, BatchNorm2d):
-                
-                # Fill the input Tensor with the value
-                constant_(tensor = module.weight, val = 1)
-                constant_(tensor = module.bias,   val = 0)
-
-            # For linear layers
-            elif isinstance(module, Linear):
-                
-                # Fill the input Tensor with values drawn from the normal distribution
-                normal_(tensor = module.weight, mean = 0, std = 0.01)
-                
-                # Fill the input Tensor with the value
-                constant_(tensor = module.bias, val = 0)
-
-    def to_csv(self, file_path: str) -> None:
-        """Dump model layer data to CSV file.
-
-        Args:
-            file_path (str): Path at which data file (CSV) will be written
-        """
-        self.__logger__.info(f"Saving model layer data to {file_path}")
-        self._model_data.to_csv(file_path)

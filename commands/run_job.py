@@ -17,7 +17,7 @@ from tqdm                   import tqdm
 
 from datasets               import Dataset, load_dataset
 from models                 import load_model
-from utils                  import LOGGER
+from utils                  import LOGGER, TIMESTAMP
 
 def run_job(
     dataset:            str,
@@ -30,7 +30,6 @@ def run_job(
     batch_size:         int =   64,
     data_path:          str =   "data",
     learning_rate:      float = 1e-1,
-    save_parameters:    bool =  False,
     epochs:             int =   200,
     output_path:        str =   "output",
     **kwargs
@@ -46,8 +45,6 @@ def run_job(
     ## Model Args:
         * model             (str):              Model with which job will execute.
         * learning_rate     (float, optional):  Model's optimizer learning rate. Defaults to 0.1.
-        * save_parameters   (bool, optional):   Save model parameters on completion of training. 
-                                                Defaults to False.
         
     ## Kernel Args
         * kernel            (str, optional):    Kernel with which model will be loaded.
@@ -76,10 +73,6 @@ def run_job(
     
     # Log job configuration for debugging
     __logger__.debug(f"Initializing...\nParameters: {dumps(obj = locals(), indent = 2, default = str)}")
-    
-    # Ensure output path exists
-    makedirs(name = f"{output_path}/{model}/{dataset}/{kernel if kernel else 'control'}", exist_ok = True)
-    __logger__.debug(f"Output path: {output_path}/{model}/{dataset}/{kernel if kernel else 'control'}")
     
     # Load dataset
     _dataset_:              Dataset =   load_dataset(**locals())
@@ -117,8 +110,16 @@ def run_job(
                                             "test_loss":        0
                                         }
     
-    # Run model from CUDA if available
-    if is_available(): _model_ = _model_.cuda()
+    # Define job's output path
+    _output_path_:     str =            f"""{output_path}/jobs/{dataset}/{model}/{f"{kernel}-{kernel_group}" if kernel is not None else "control"}/{TIMESTAMP}"""
+    
+    # Ensure output path exists
+    makedirs(name = _output_path_, exist_ok = True)
+    
+    # Log output path for debugging
+    __logger__.debug(f"Job output will be saved to: {_output_path_}")
+    
+    # Log device for debugging
     __logger__.debug(f"Using device: {get_device_name()}")
     
     # +============================================================================================+
@@ -312,10 +313,13 @@ def run_job(
     
     # Save job statistics to file
     with open(
-        file =      f"{output_path}/{model}/{dataset}/{kernel if kernel is not None else 'control'}.json", 
+        file =      f"{_output_path_}/statistics.json", 
         mode =      "w", 
         encoding =  "utf-8"
     ) as file_out: dump(obj = _job_statistics_, fp = file_out, indent = 2, default = str)
+    
+    # Save model parameters to file
+    _model_.save_parameters(output_path = _output_path_)
         
     
     # Return job statistics

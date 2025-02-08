@@ -1,5 +1,7 @@
 """Base implementation of kernel classes."""
 
+__all__ = ["Kernel"]
+
 from json       import dumps
 from logging    import Logger
 from random     import choice

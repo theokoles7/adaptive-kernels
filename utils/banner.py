@@ -1,5 +1,7 @@
 """Console/logging banner."""
 
+__all__ = ["BANNER"]
+
 from utils  import ARGS
 
 BANNER =    ("""

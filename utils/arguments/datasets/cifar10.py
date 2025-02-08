@@ -1,5 +1,7 @@
 """Cifar-10 dataset argument definitions."""
 
+__all__ = ["add_cifar10_parser"]
+
 from argparse               import ArgumentParser, _SubParsersAction
 
 from utils.arguments.models import  (

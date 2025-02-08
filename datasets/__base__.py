@@ -1,5 +1,7 @@
 """Base implementation of dataset classes."""
 
+__all__ = ["Dataset"]
+
 from torch.utils.data   import DataLoader
 
 class Dataset():

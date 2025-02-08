@@ -1,5 +1,7 @@
 """MNIST dataset and utilities."""
 
+__all__ = ["MNIST"]
+
 from json                   import dumps
 from logging                import Logger
 from typing                 import override

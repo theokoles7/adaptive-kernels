@@ -1,3 +1,5 @@
+"""Kernel arguments package."""
+
 __all__ = ["cauchy", "gaussian", "gumbel", "laplace"]
 
 from utils.arguments.kernels.cauchy     import add_cauchy_parser

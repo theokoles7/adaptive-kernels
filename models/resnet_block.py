@@ -1,5 +1,7 @@
 """Resnet model block."""
 
+__all__ = ["ResnetBlock"]
+
 from json                   import dumps
 from logging                import Logger
 

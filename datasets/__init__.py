@@ -1,4 +1,6 @@
-__all__ = ["__base__", "cifar10", "cifar100", "imagenet", "mnist"]
+"""Datasets package."""
+
+__all__ = ["__base__", "cifar10", "cifar100", "imagenet", "load_dataset", "mnist"]
 
 from datasets.__base__  import Dataset
 

@@ -1,5 +1,7 @@
 """Gumbel kernel utilities."""
 
+__all__ = ["GumbelKernel"]
+
 from typing     import override
 
 from torch      import exp, sum, Tensor

@@ -1,5 +1,7 @@
 """Gaussian kernel argument definitions."""
 
+__all__ = ["add_gaussian_parser"]
+
 from argparse   import ArgumentParser, _SubParsersAction
 
 def add_gaussian_parser(

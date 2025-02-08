@@ -1,5 +1,7 @@
 """Run predetermined experiments."""
 
+__all__ = ["run_experiment"]
+
 import os
 
 from utils  import ARGS, LOGGER

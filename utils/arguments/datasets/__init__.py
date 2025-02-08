@@ -1,4 +1,6 @@
-__all__ = ["cifar10"]
+"""Dataset arguments package."""
+
+__all__ = ["cifar10", "cifar100", "imagenet", "mnist"]
 
 from utils.arguments.datasets.cifar10   import add_cifar10_parser
 from utils.arguments.datasets.cifar100  import add_cifar100_parser

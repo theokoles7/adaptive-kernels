@@ -1,5 +1,7 @@
 """ResNet model argument definitions."""
 
+__all__ = ["add_resnet_parser"]
+
 from argparse                   import ArgumentParser, _SubParsersAction
 
 from utils.arguments.kernels    import  (

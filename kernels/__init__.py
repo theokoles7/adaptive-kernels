@@ -1,4 +1,6 @@
-__all__ = ["__base__", "cauchy", "gaussian", "gumbel", "laplace"]
+"""Kernels package."""
+
+__all__ = ["__base__", "cauchy", "gaussian", "gumbel", "laplace", "load_kernel"]
 
 from kernels.__base__           import Kernel
 

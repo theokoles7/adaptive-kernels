@@ -1,5 +1,7 @@
 """Laplace kernel argument definitions."""
 
+__all__ = ["add_laplace_parser"]
+
 from argparse   import ArgumentParser, _SubParsersAction
 
 def add_laplace_parser(

@@ -1,5 +1,7 @@
 """Experiment argument definitions."""
 
+__all__ = ["add_experiment_parser"]
+
 from argparse                   import ArgumentParser, _SubParsersAction
 
 def add_experiment_parser(

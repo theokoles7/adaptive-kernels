@@ -1,5 +1,7 @@
 """Resnet-18 model."""
 
+__all__ = ["Resnet"]
+
 from json                   import dumps
 from logging                import Logger
 

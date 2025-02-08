@@ -1,5 +1,7 @@
 """VGG-16 model."""
 
+__all__ = ["VGG"]
+
 from json           import dumps
 from logging        import Logger
 

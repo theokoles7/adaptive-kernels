@@ -1,5 +1,7 @@
 """Laplace kernel utilities."""
 
+__all__ = ["LaplaceKernel"]
+
 from typing     import override
 
 from torch      import exp, sum, Tensor

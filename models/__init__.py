@@ -1,4 +1,6 @@
-__all__ = ['accessor', 'normal', 'resnet_block', 'resnet', 'vgg']
+"""Models package."""
+
+__all__ = ["load_model", "normal", "resnet_block", "resnet", "vgg"]
 
 from torch.nn               import Module
 

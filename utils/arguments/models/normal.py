@@ -1,5 +1,7 @@
 """Normal CNN model argument definitions."""
 
+__all__ = ["add_normal_cnn_parser"]
+
 from argparse                   import ArgumentParser, _SubParsersAction
 
 from utils.arguments.kernels    import  (

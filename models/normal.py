@@ -1,5 +1,7 @@
 """Basic CNN model."""
 
+__all__ = ["NormalCNN"]
+
 from json                   import dump, dumps
 from logging                import Logger
 

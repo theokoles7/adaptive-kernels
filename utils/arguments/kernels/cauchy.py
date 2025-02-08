@@ -1,5 +1,7 @@
 """Cauchy kernel argument definitions."""
 
+__all__ = ["add_cauchy_parser"]
+
 from argparse   import ArgumentParser, _SubParsersAction
 
 def add_cauchy_parser(

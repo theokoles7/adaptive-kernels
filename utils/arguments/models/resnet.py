@@ -1,0 +1,46 @@
+"""ResNet model argument definitions."""
+
+__all__ = ["add_resnet_parser"]
+
+from argparse                   import ArgumentParser, _SubParsersAction
+
+from utils.arguments.kernels    import  (
+                                            add_cauchy_parser,
+                                            add_gaussian_parser,
+                                            add_gumbel_parser,
+                                            add_laplace_parser
+                                        )
+
+def add_resnet_parser(
+    parent_subparser:   _SubParsersAction
+) -> None:
+    """# Add parser/arguments for ResNet model.
+
+    ## Args:
+        * parent_subparser  (_SubParsersAction):    Parent's sub-parser.
+    """
+    # Initialize parser
+    _parser_:       ArgumentParser =    parent_subparser.add_parser(
+        name =      "resnet",
+        help =      """Use ResNet model for job process."""
+    )
+    
+    # Add model arguments
+    _parser_.add_argument(
+        "--learning-rate", "-lr",
+        type =      float,
+        default =   1e-1,
+        help =      """Model's learning rate. Defaults to 0.1."""
+    )
+    
+    # Initialize sub-parser
+    _subparser_:    _SubParsersAction = _parser_.add_subparsers(
+        dest =      "kernel",
+        help =      """Kernel selection."""
+    )
+    
+    # Add kernel parser
+    add_cauchy_parser(parent_subparser =    _subparser_)
+    add_gaussian_parser(parent_subparser =  _subparser_)
+    add_gumbel_parser(parent_subparser =    _subparser_)
+    add_laplace_parser(parent_subparser =   _subparser_)

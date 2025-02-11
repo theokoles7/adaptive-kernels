@@ -1,0 +1,16 @@
+# BUILD FILES
+build
+__pycache__
+*.egg-info
+
+# Log files
+logs
+
+# Output/reports
+output
+
+# DATASETS (TOO LARGE TO BE WORTH SOURCING)
+data/*
+
+# Scratch files
+*scratch*
